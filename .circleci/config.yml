@@ -12,21 +12,19 @@ commands:
     steps:
       - run:
           name: Destroy environments - Backend
-          # when: on_fail
+          when: on_fail
           command: |
             aws cloudformation delete-stack --stack-name udapeople-backend-<< parameters.id >>
           environment:
             TERM: xterm-256color
-          when: << parameters.when >>
       - run:
           name: Destroy environments - Frontend
-          # when: on_fail
+          when: on_fail
           command: |
             aws s3 rm s3://udapeople-<< parameters.id >> --recursive
             aws cloudformation delete-stack --stack-name udapeople-frontend-<< parameters.id >>
           environment:
             TERM: xterm-256color
-          when: << parameters.when >>
 
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
@@ -39,7 +37,8 @@ commands:
       - run:
           name: Revert migrations
           # Add when this will run
-          when: << parameters.when >>
+          # when: << parameters.when >>
+          when: on_success
           command: |
             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable SUCCESS = 1
             SUCCESS=$(curl -H "token: 2a9e15d6-b9fa-4b1f-a5dc-e3b9643a9b63" --request GET https://api.memstash.io/values/DB_MIGRATION_<< parameters.id >>)
