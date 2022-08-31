@@ -94,11 +94,11 @@ jobs:
     steps:
       - checkout
       - restore-cache:
-          [test-backend]
+          [test-frontend]
       - run:
-        name: Run backend test
+        name: Run frontend test
         command: |
-          cd backend
+          cd frontend
           npm install
           npm run test 
                 
