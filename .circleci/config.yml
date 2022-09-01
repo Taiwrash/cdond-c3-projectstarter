@@ -160,6 +160,7 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
+      - run: yum install tar gzip -y
       - run:
           name: Ensure back-end infrastructure exists
           command: |
@@ -183,7 +184,7 @@ jobs:
             BACKEND_IP=$(aws ec2 describe-instances \
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --filters "Name=tag:project,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --output text)
+              --output text >> ~/project/.circleci/ansible/inventory.txt)
       - persist_to_workspace:
           root: ~/
           paths:
@@ -195,21 +196,32 @@ jobs:
 
   configure-infrastructure:
     docker:
-      - image: amazon/aws-cli
+      - image: python:3.10-alpine3.16
     steps:
       # Checkout code from git
+      - checkout
       # Add ssh keys with fingerprint
+      - add_ssh_keys:
+          fingerprints:
+            - "a5:c6:88:cd:40:0e:c0:86:bd:fa:d0:fb:39:5c:ac:0a"
+
       # attach workspace
+      - attach_workspace:
+          at: ~/
       - run:
           name: Install dependencies
           command: |
             # Your code here
-            exit 1
+            apk add--update --no-cache ansible tar gzip aws-cli openssh
       - run:
           name: Configure server
           command: |
             # Your code here
-            exit 1
+            pwd
+            cd .circleci/ansible
+            ls -al
+            ansible-playbook -i inventory.txt configure-server.yml
+          no-output_timeout: 30m
       # Here's where you will add some code to rollback on failure      
 
 
@@ -233,3 +245,5 @@ workflows:
             branches:
               only:
                 - master
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
