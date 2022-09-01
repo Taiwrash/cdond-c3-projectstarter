@@ -156,7 +156,8 @@ jobs:
             npm audit --audit-level=critical --force
 
   deploy-infrastructure:
-    executor: aws
+    docker:
+      - image: amazon/aws-cli
     steps:
       - checkout
       - run:
@@ -220,4 +221,7 @@ workflows:
       - scan-backend:
           requires: [build-backend]
       - deploy-infrastructure:
-          requires: [scan-backend]
+         filters:
+            branches:
+              only:
+                - master
