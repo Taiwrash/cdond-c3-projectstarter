@@ -164,10 +164,12 @@ jobs:
       - run:
           name: Add back-end ip to ansible inventory
           command: |
-            BACKEND_IP=$(aws ec2 describe-instances \
+              aws ec2 describe-instances \
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --filters "Name=tag:project,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --output text >> ~/project/.circleci/ansible/inventory.txt)
+              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --output text >> ~/project/.circleci/ansible/inventory.txt
+              cat ~/project/.circleci/ansible/inventory.txt
+              
       - persist_to_workspace:
           root: ~/
           paths:
@@ -221,7 +223,7 @@ jobs:
           command: |
             # Your code here
             cd backend
-            npm install
+            sudo npm install -g npm
             npm run migrations >> migrations_dump.txt
             cat migrations_dump.txt
             
