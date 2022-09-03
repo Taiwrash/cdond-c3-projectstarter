@@ -310,7 +310,7 @@ jobs:
           command: |
             # your code here
             cd backend
-            npm i
+            npm install
             npm run build
             cd ..
             # Zip the directory
@@ -318,9 +318,59 @@ jobs:
             cd .circleci/ansible
             echo "Contents  of the inventory.txt file is -------"
             cat inventory.txt
+            # export ANSIBLE_HOST_KEY_CHECKING
             ansible-playbook -i inventory.txt deploy-backend.yml
-      # Here's where you will add some code to rollback on failure  
+      # Here's where you will add some code to rollback on failure
 
+  smoke-test:
+    docker: 
+      - image: alpine
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [backend-build]
+      - run:
+          name: Install dependencies
+          command: |
+            apk add aws-cli curl
+      - run:
+          name: Get backend url
+          command: |
+            BACKEND_URL=$(aws --region us-east-1 ec2 describe-instances \
+             --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+             --query "Reservations[*].Instances[*].[PublicIpAddress]" \
+             --output text)
+            export API_URL="http://${BACKEND_URL}:3030"
+            echo "${API_URL}"
+      - run:
+          name: Backend smoke test.
+          command: |
+            BACKEND_URL=$(aws --region us-east-1 ec2 describe-instances \
+             --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+             --query "Reservations[*].Instances[*].[PublicIpAddress]" \
+             --output text)
+            export API_URL="http://${BACKEND_URL}:3030"
+            echo "${API_URL}"
+            if curl "${API_URL}/api/status" | grep "ok"
+            then
+              return 0
+            else
+              return 1
+            fi
+      - restore_cache:
+          keys: [frontend-build]
+      - run:
+          name: Frontend smoke test.
+          command: |
+            URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
+            echo ${URL} 
+            if curl -s ${URL} | grep "Welcome"
+            then
+              # Change this to 0 after the job fails
+              return 1
+            else
+              return 1
+            fi
 
 workflows:
   default:
@@ -349,3 +399,5 @@ workflows:
           requires: [run-migrations]
       - deploy-backend:
           requires: [deploy-frontend]
+      - smoke-test:
+          requires: [deploy-backend, deploy-frontend]
