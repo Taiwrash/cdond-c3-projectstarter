@@ -318,7 +318,7 @@ jobs:
           name: Install dependencies
           command: |
             # your code here
-            apk add --update --no-cache ansible tar gzip aws-cli curl nodejs npm python
+            apk add --update --no-cache ansible tar gzip aws-cli curl nodejs npm
       - run:
           name: Deploy backend
           command: |
