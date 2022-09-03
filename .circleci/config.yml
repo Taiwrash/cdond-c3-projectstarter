@@ -240,6 +240,7 @@ jobs:
             cd backend
             sudo npm install -g npm
             npm run migrations >> migrations_dump.txt
+            cat migrations_dump.txt
             
       - run:
           name: Send migration results to kvdb
