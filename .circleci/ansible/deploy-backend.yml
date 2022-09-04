@@ -30,6 +30,3 @@
 #   #       become: true
 #   #       raw: test -e /usr/bin/python3 || yum -y install python
 #   #       changed_when: false
-
-#   roles:
-#     - deploy
