@@ -140,9 +140,12 @@ jobs:
 
   deploy-infrastructure:
     docker:
+      # Docker image here that supports AWS CLI
       - image: amazon/aws-cli
     steps:
+      # Checkout code from git
       - checkout
+      # Install tar and gzip
       - run: yum install tar gzip -y
       - run:
           name: Ensure back-end infrastructure exists
@@ -151,7 +154,7 @@ jobs:
               --template-file .circleci/files/backend.yml \
               --tags project=udapeople \
               --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  
       - run:
           name: Ensure front-end infrastructure exist
           command: |
@@ -160,53 +163,23 @@ jobs:
               --tags project=udapeople \
               --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
-      
+      # Fetch add append the public IP address of the EC2 instance to inventory.txt file
       - run:
           name: Add back-end ip to ansible inventory
           command: |
-              aws ec2 describe-instances \
-              --query 'Reservations[*].Instances[*].[PublicIpAddress]' \
-              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --output text >> ~/project/.circleci/ansible/inventory.txt
-              cat ~/project/.circleci/ansible/inventory.txt
-              
+            aws ec2 describe-instances \
+            --query "Reservations[*].Instances[*].[PublicIpAddress]" \
+            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --output text >> ~/project/.circleci/ansible/inventory.txt
+            cat ~/project/.circleci/ansible/inventory.txt
       - persist_to_workspace:
           root: ~/
           paths:
             - project/.circleci/ansible/inventory.txt
-      # Here's where you will add some code to rollback on failure      
+      # Here's where you will add some code to rollback on failure
       - destroy-environment:
-          WorkflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+          WorkflowID: ${CIRCLE_WORKFLOW_ID:0:7}       
 
-  # configure-infrastructure:
-  #   docker:
-  #     - image: python:3.10-alpine3.16
-  #   steps:
-  #     # Checkout code from git
-  #     - checkout
-  #     # Add ssh keys with fingerprint
-  #     - add_ssh_keys:
-  #         fingerprints:
-  #           - "7c:c3:58:2a:8d:8b:5d:66:2a:6d:ad:2b:9a:c3:ca:87"
-
-  #     # attach workspace
-  #     - attach_workspace:
-  #         at: ~/
-  #     - run:
-  #         name: Install dependencies
-  #         command: |
-  #           # Your code here
-  #           apk add --update --no-cache ansible tar gzip aws-cli openssh
-  #     - run:
-  #         name: Configure server
-  #         command: |
-  #           # Your code here
-  #           pwd
-  #           cd .circleci/ansible
-  #           ls -al
-  #           ansible-playbook -i inventory.txt configure-server.yml
-  #         no_output_timeout: 30m
-      # Here's where you will add some code to rollback on failure 
   configure-infrastructure:
     docker:
       # Docker image here that supports Ansible
@@ -235,7 +208,37 @@ jobs:
           no_output_timeout: 25m
       # Here's where you will add some code to rollback on failure
       - destroy-environment:
-          WorkflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+          WorkflowID: ${CIRCLE_WORKFLOW_ID:0:7}      
+ 
+  # configure-infrastructure:
+  #   docker:
+  #     # Docker image here that supports Ansible
+  #     - image: python:3.10-alpine3.16
+  #   steps:
+  #     # Checkout code from git
+  #     - checkout
+  #     # Add ssh keys with fingerprint
+  #     - add_ssh_keys:
+  #        fingerprints:
+  #           - "7c:c3:58:2a:8d:8b:5d:66:2a:6d:ad:2b:9a:c3:ca:87"
+  #     # attach workspace
+  #     - attach_workspace:
+  #         at: ~/
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           apk add --update --no-cache ansible tar gzip aws-cli openssh
+  #     - run:
+  #         name: Configure server
+  #         command: |
+  #           pwd
+  #           cd .circleci/ansible
+  #           ls -al
+  #           ansible-playbook -i inventory.txt configure-server.yml
+  #         no_output_timeout: 25m
+  #     # Here's where you will add some code to rollback on failure
+  #     - destroy-environment:
+  #         WorkflowID: ${CIRCLE_WORKFLOW_ID:0:7}
 
   run-migrations:
     docker:
@@ -280,26 +283,28 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            # your code here
             export BACKEND_IP=$(aws ec2 describe-instances \
-             --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --filters "Name=tag:project,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --output text)
+            --query "Reservations[*].Instances[*].[PublicIpAddress]" \
+            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --output text)
             export API_URL="http://${BACKEND_IP}:3030"
-            echo "API_URL = ${API_URL}"
+            echo "API_URL=${API_URL}"
             echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
             cat frontend/.env
       - run:
           name: Deploy frontend objects
           command: |
-            # your code here
             cd frontend
             npm install
             npm run build
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
-            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
-      # Here's where you will add some code to rollback on failure      
-  
+            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive 
+            
+      # Here's where you will add some code to rollback on failure
+      - destroy-environment:
+          WorkflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          WorkflowID: ${CIRCLE_WORKFLOW_ID:0:7}
   deploy-backend:
     docker:
       # Docker image here that supports Ansible
