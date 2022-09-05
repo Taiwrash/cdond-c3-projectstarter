@@ -1,4 +1,0 @@
-url02: http://udapeople-9322516.s3-website-us-east-1.amazonaws.com
-Repo Link01: https://github.com/Taiwrash/cdond-c3-projectstarter
-url03: https://d2ndkknha46owi.cloudfront.net
-url04: https://54.145.165.155:3030/api/status
